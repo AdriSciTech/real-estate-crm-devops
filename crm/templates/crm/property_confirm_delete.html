@@ -1,0 +1,27 @@
+{% extends 'crm/base.html' %}
+{% load humanize %}
+{% block title %}Delete Property - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Delete Property</h1>
+</div>
+
+<div class="card">
+    <h2>Are you sure you want to delete this property?</h2>
+    
+    <div style="margin: 2rem 0; padding: 1rem; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+        <strong>Property:</strong> {{ property.address }}<br>
+        <strong>Price:</strong> ${{ property.price|floatformat:2|intcomma }}<br>
+        <strong>Status:</strong> {{ property.get_status_display }}
+    </div>
+    
+    <p><strong>Warning:</strong> This action cannot be undone. All associated data will be permanently deleted.</p>
+    
+    <form method="post" style="margin-top: 2rem;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete Property</button>
+        <a href="{% url 'property_detail' property.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+# Create client_list.html
+@'
+{% extends 'crm/base.html' %}
+{% block title %}Clients - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Clients</h1>
+    <a href="{% url 'client_create' %}" class="btn">Add New Client</a>
+</div>
+
+<form method="get" class="filter-form">
+    <div class="form-group">
+        <label for="search">Search</label>
+        <input type="text" name="search" id="search" placeholder="Name, email, or phone..." value="{{ search_query }}">
+    </div>
+    
+    <div class="form-group">
+        <label for="client_type">Type</label>
+        <select name="client_type" id="client_type">
+            <option value="">All Types</option>
+            {% for value, label in type_choices %}
+                <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <button type="submit" class="btn">Filter</button>
+    <a href="{% url 'client_list' %}" class="btn btn-secondary">Clear</a>
+</form>
+
+{% if clients %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Type</th>
+                <th>Properties</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+                <tr>
+                    <td>
+                        <a href="{% url 'client_detail' client.pk %}">{{ client.name }}</a>
+                    </td>
+                    <td>{{ client.email|default:"-" }}</td>
+                    <td>{{ client.phone|default:"-" }}</td>
+                    <td>{{ client.get_client_type_display }}</td>
+                    <td>{{ client.properties_interested.count }}</td>
+                    <td>
+                        <a href="{% url 'client_update' client.pk %}">Edit</a> |
+                        <a href="{% url 'client_delete' client.pk %}" style="color: #e74c3c;">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="card">
+        <p>No clients found. <a href="{% url 'client_create' %}">Add your first client</a></p>
+    </div>
+{% endif %}
+{% endblock %}
+'@ | Out-File -FilePath crm/templates/crm/client_list.html -Encoding UTF8

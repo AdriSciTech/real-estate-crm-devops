@@ -1,0 +1,119 @@
+# Create client_detail.html
+@'
+{% extends 'crm/base.html' %}
+{% block title %}{{ client.name }} - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Client Details</h1>
+    <div>
+        <a href="{% url 'client_update' client.pk %}" class="btn">Edit</a>
+        <a href="{% url 'client_delete' client.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>{{ client.name }}</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <div>
+            <strong>Email:</strong><br>
+            {% if client.email %}
+                <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+            {% else %}
+                Not provided
+            {% endif %}
+        </div>
+        
+        <div>
+            <strong>Phone:</strong><br>
+            {% if client.phone %}
+                <a href="tel:{{ client.phone }}">{{ client.phone }}</a>
+            {% else %}
+                Not provided
+            {% endif %}
+        </div>
+        
+        <div>
+            <strong>Client Type:</strong><br>
+            {{ client.get_client_type_display }}
+        </div>
+        
+        <div>
+            <strong>Client Since:</strong><br>
+            {{ client.created_date|date:"F d, Y" }}
+        </div>
+    </div>
+    
+    {% if client.notes %}
+    <div style="margin-top: 2rem;">
+        <strong>Notes:</strong><br>
+        <p style="margin-top: 0.5rem;">{{ client.notes|linebreaks }}</p>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+        <small>
+            Created: {{ client.created_at|date:"F d, Y g:i A" }}<br>
+            Last Updated: {{ client.updated_at|date:"F d, Y g:i A" }}
+        </small>
+    </div>
+</div>
+
+{% if client.properties_interested.exists %}
+<div class="card">
+    <h3>Interested Properties</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Price</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for property in client.properties_interested.all %}
+                <tr>
+                    <td><a href="{% url 'property_detail' property.pk %}">{{ property.address }}</a></td>
+                    <td>${{ property.price|floatformat:2 }}</td>
+                    <td>
+                        <span class="property-status status-{{ property.status|lower }}">
+                            {{ property.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if client.properties_owned.exists %}
+<div class="card">
+    <h3>Owned Properties</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Price</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for property in client.properties_owned.all %}
+                <tr>
+                    <td><a href="{% url 'property_detail' property.pk %}">{{ property.address }}</a></td>
+                    <td>${{ property.price|floatformat:2 }}</td>
+                    <td>
+                        <span class="property-status status-{{ property.status|lower }}">
+                            {{ property.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+'@ | Out-File -FilePath crm/templates/crm/client_detail.html -Encoding UTF8

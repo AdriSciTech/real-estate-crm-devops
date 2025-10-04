@@ -1,0 +1,110 @@
+{% extends 'crm/base.html' %}
+{% load humanize %}
+{% block title %}{{ property.address }} - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Property Details</h1>
+    <div>
+        <a href="{% url 'property_update' property.pk %}" class="btn">Edit</a>
+        <a href="{% url 'property_delete' property.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>{{ property.address }}</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <div>
+            <strong>Price:</strong><br>
+            ${{ property.price|floatformat:2|intcomma }}
+        </div>
+        
+        <div>
+            <strong>Status:</strong><br>
+            <span class="property-status status-{{ property.status|lower }}">
+                {{ property.get_status_display }}
+            </span>
+        </div>
+        
+        <div>
+            <strong>Type:</strong><br>
+            {{ property.get_property_type_display }}
+        </div>
+        
+        <div>
+            <strong>Listing Date:</strong><br>
+            {{ property.listing_date|date:"F d, Y" }}
+        </div>
+        
+        {% if property.bedrooms %}
+        <div>
+            <strong>Bedrooms:</strong><br>
+            {{ property.bedrooms }}
+        </div>
+        {% endif %}
+        
+        {% if property.bathrooms %}
+        <div>
+            <strong>Bathrooms:</strong><br>
+            {{ property.bathrooms }}
+        </div>
+        {% endif %}
+        
+        {% if property.square_feet %}
+        <div>
+            <strong>Square Feet:</strong><br>
+            {{ property.square_feet|intcomma }}
+        </div>
+        {% endif %}
+        
+        {% if property.collaborator %}
+        <div>
+            <strong>Assigned To:</strong><br>
+            {{ property.collaborator.name }} ({{ property.collaborator.get_role_display }})
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if property.description %}
+    <div style="margin-top: 2rem;">
+        <strong>Description:</strong><br>
+        <p style="margin-top: 0.5rem;">{{ property.description|linebreaks }}</p>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+        <small>
+            Created: {{ property.created_at|date:"F d, Y g:i A" }}<br>
+            Last Updated: {{ property.updated_at|date:"F d, Y g:i A" }}
+        </small>
+    </div>
+</div>
+
+{% if property.interested_clients.exists %}
+<div class="card">
+    <h3>Interested Clients</h3>
+    <ul>
+        {% for client in property.interested_clients.all %}
+            <li>{{ client.name }} ({{ client.get_client_type_display }})</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if property.tasks.exists %}
+<div class="card">
+    <h3>Related Tasks</h3>
+    <ul>
+        {% for task in property.tasks.all %}
+            <li>
+                {{ task.title }} - Due: {{ task.due_date|date:"M d, Y" }}
+                <span class="{% if task.status == 'COMPLETE' %}task-complete{% else %}task-pending{% endif %}">
+                    ({{ task.get_status_display }})
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

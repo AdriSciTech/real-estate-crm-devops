@@ -1,0 +1,86 @@
+{% extends 'crm/base.html' %}
+{% load humanize %}
+{% block title %}{{ title }} - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            {{ form.address.label_tag }}
+            {{ form.address }}
+            {{ form.address.errors }}
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                {{ form.price.label_tag }}
+                {{ form.price }}
+                {{ form.price.errors }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.listing_date.label_tag }}
+                {{ form.listing_date }}
+                {{ form.listing_date.errors }}
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                {{ form.property_type.label_tag }}
+                {{ form.property_type }}
+                {{ form.property_type.errors }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.status.label_tag }}
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                {{ form.bedrooms.label_tag }}
+                {{ form.bedrooms }}
+                {{ form.bedrooms.errors }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.bathrooms.label_tag }}
+                {{ form.bathrooms }}
+                {{ form.bathrooms.errors }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.square_feet.label_tag }}
+                {{ form.square_feet }}
+                {{ form.square_feet.errors }}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            {{ form.collaborator.label_tag }}
+            {{ form.collaborator }}
+            {{ form.collaborator.errors }}
+        </div>
+        
+        <div class="form-group">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+            {{ form.description.errors }}
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn">Save Property</button>
+            <a href="{% url 'property_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

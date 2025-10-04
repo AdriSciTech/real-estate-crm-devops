@@ -1,0 +1,80 @@
+{% extends 'crm/base.html' %}
+{% load humanize %}
+{% block title %}Properties - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Properties</h1>
+    <a href="{% url 'property_create' %}" class="btn">Add New Property</a>
+</div>
+
+<form method="get" class="filter-form">
+    <div class="form-group">
+        <label for="search">Search</label>
+        <input type="text" name="search" id="search" placeholder="Address or description..." value="{{ search_query }}">
+    </div>
+    
+    <div class="form-group">
+        <label for="status">Status</label>
+        <select name="status" id="status">
+            <option value="">All Statuses</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="property_type">Type</label>
+        <select name="property_type" id="property_type">
+            <option value="">All Types</option>
+            {% for value, label in type_choices %}
+                <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <button type="submit" class="btn">Filter</button>
+    <a href="{% url 'property_list' %}" class="btn btn-secondary">Clear</a>
+</form>
+
+{% if properties %}
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Price</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Listing Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for property in properties %}
+                <tr>
+                    <td>
+                        <a href="{% url 'property_detail' property.pk %}">{{ property.address }}</a>
+                    </td>
+                    <td>${{ property.price|floatformat:2|intcomma }}</td>
+                    <td>{{ property.get_property_type_display }}</td>
+                    <td>
+                        <span class="property-status status-{{ property.status|lower }}">
+                            {{ property.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ property.listing_date|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'property_update' property.pk %}">Edit</a> |
+                        <a href="{% url 'property_delete' property.pk %}" style="color: #e74c3c;">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="card">
+        <p>No properties found. <a href="{% url 'property_create' %}">Add your first property</a></p>
+    </div>
+{% endif %}
+{% endblock %}
