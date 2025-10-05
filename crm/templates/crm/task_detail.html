@@ -1,0 +1,76 @@
+{% extends 'crm/base.html' %}
+{% block title %}{{ task.title }} - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Task Details</h1>
+    <div>
+        <a href="{% url 'task_update' task.pk %}" class="btn">Edit</a>
+        <a href="{% url 'task_delete' task.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>{{ task.title }}</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <div>
+            <strong>Due Date:</strong><br>
+            {{ task.due_date|date:"F d, Y" }}
+        </div>
+        
+        <div>
+            <strong>Status:</strong><br>
+            <span class="property-status status-{{ task.status|lower }}">
+                {{ task.get_status_display }}
+            </span>
+        </div>
+        
+        <div>
+            <strong>Priority:</strong><br>
+            {{ task.get_priority_display }}
+        </div>
+        
+        {% if task.assigned_to %}
+        <div>
+            <strong>Assigned To:</strong><br>
+            <a href="{% url 'collaborator_detail' task.assigned_to.pk %}">
+                {{ task.assigned_to.name }}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if task.description %}
+    <div style="margin-top: 2rem;">
+        <strong>Description:</strong><br>
+        <p style="margin-top: 0.5rem;">{{ task.description|linebreaks }}</p>
+    </div>
+    {% endif %}
+    
+    {% if task.property %}
+    <div style="margin-top: 2rem;">
+        <strong>Related Property:</strong><br>
+        <a href="{% url 'property_detail' task.property.pk %}">
+            {{ task.property.address }} - ${{ task.property.price|floatformat:2 }}
+        </a>
+    </div>
+    {% endif %}
+    
+    {% if task.client %}
+    <div style="margin-top: 2rem;">
+        <strong>Related Client:</strong><br>
+        <a href="{% url 'client_detail' task.client.pk %}">
+            {{ task.client.name }} ({{ task.client.get_client_type_display }})
+        </a>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+        <small>
+            Created: {{ task.created_at|date:"F d, Y g:i A" }}<br>
+            Last Updated: {{ task.updated_at|date:"F d, Y g:i A" }}
+        </small>
+    </div>
+</div>
+{% endblock %}

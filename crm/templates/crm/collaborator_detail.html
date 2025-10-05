@@ -1,0 +1,99 @@
+{% extends 'crm/base.html' %}
+{% block title %}{{ collaborator.name }} - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Collaborator Details</h1>
+    <div>
+        <a href="{% url 'collaborator_update' collaborator.pk %}" class="btn">Edit</a>
+        <a href="{% url 'collaborator_delete' collaborator.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>{{ collaborator.name }}</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <div>
+            <strong>Email:</strong><br>
+            <a href="mailto:{{ collaborator.email }}">{{ collaborator.email }}</a>
+        </div>
+        
+        <div>
+            <strong>Role:</strong><br>
+            {{ collaborator.get_role_display }}
+        </div>
+        
+        <div>
+            <strong>Active Properties:</strong><br>
+            {{ collaborator.properties.count }}
+        </div>
+        
+        <div>
+            <strong>Assigned Tasks:</strong><br>
+            {{ collaborator.tasks.count }}
+        </div>
+    </div>
+    
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+        <small>
+            Created: {{ collaborator.created_at|date:"F d, Y g:i A" }}<br>
+            Last Updated: {{ collaborator.updated_at|date:"F d, Y g:i A" }}
+        </small>
+    </div>
+</div>
+
+{% if collaborator.properties.exists %}
+<div class="card">
+    <h3>Assigned Properties</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>Price</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for property in collaborator.properties.all %}
+                <tr>
+                    <td><a href="{% url 'property_detail' property.pk %}">{{ property.address }}</a></td>
+                    <td>${{ property.price|floatformat:2 }}</td>
+                    <td>
+                        <span class="property-status status-{{ property.status|lower }}">
+                            {{ property.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if collaborator.tasks.exists %}
+<div class="card">
+    <h3>Assigned Tasks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in collaborator.tasks.all %}
+                <tr>
+                    <td><a href="{% url 'task_detail' task.pk %}">{{ task.title }}</a></td>
+                    <td>{{ task.due_date|date:"M d, Y" }}</td>
+                    <td>{{ task.get_status_display }}</td>
+                    <td>{{ task.get_priority_display }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'crm/base.html' %}
+{% block title %}Tasks - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Tasks</h1>
+    <a href="{% url 'task_create' %}" class="btn">Add New Task</a>
+</div>
+
+<form method="get" class="filter-form">
+    <div class="form-group">
+        <label for="search">Search</label>
+        <input type="text" name="search" id="search" placeholder="Title or description..." value="{{ search_query }}">
+    </div>
+    
+    <div class="form-group">
+        <label for="status">Status</label>
+        <select name="status" id="status">
+            <option value="">All Statuses</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="priority">Priority</label>
+        <select name="priority" id="priority">
+            <option value="">All Priorities</option>
+            {% for value, label in priority_choices %}
+                <option value="{{ value }}" {% if current_priority == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <button type="submit" class="btn">Filter</button>
+    <a href="{% url 'task_list' %}" class="btn btn-secondary">Clear</a>
+</form>
+
+{% if tasks %}
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Assigned To</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+                <tr>
+                    <td>
+                        <a href="{% url 'task_detail' task.pk %}">{{ task.title }}</a>
+                    </td>
+                    <td>{{ task.due_date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="property-status status-{{ task.status|lower }}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ task.get_priority_display }}</td>
+                    <td>{{ task.assigned_to.name|default:"-" }}</td>
+                    <td>
+                        <a href="{% url 'task_update' task.pk %}">Edit</a> |
+                        <a href="{% url 'task_delete' task.pk %}" style="color: #e74c3c;">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="card">
+        <p>No tasks found. <a href="{% url 'task_create' %}">Add your first task</a></p>
+    </div>
+{% endif %}
+{% endblock %}
