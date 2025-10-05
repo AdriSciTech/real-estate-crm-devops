@@ -1,0 +1,65 @@
+{% extends 'crm/base.html' %}
+{% block title %}Collaborators - Real Estate CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Collaborators</h1>
+    <a href="{% url 'collaborator_create' %}" class="btn">Add New Collaborator</a>
+</div>
+
+<form method="get" class="filter-form">
+    <div class="form-group">
+        <label for="search">Search</label>
+        <input type="text" name="search" id="search" placeholder="Name or email..." value="{{ search_query }}">
+    </div>
+    
+    <div class="form-group">
+        <label for="role">Role</label>
+        <select name="role" id="role">
+            <option value="">All Roles</option>
+            {% for value, label in role_choices %}
+                <option value="{{ value }}" {% if current_role == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <button type="submit" class="btn">Filter</button>
+    <a href="{% url 'collaborator_list' %}" class="btn btn-secondary">Clear</a>
+</form>
+
+{% if collaborators %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Properties</th>
+                <th>Tasks</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for collaborator in collaborators %}
+                <tr>
+                    <td>
+                        <a href="{% url 'collaborator_detail' collaborator.pk %}">{{ collaborator.name }}</a>
+                    </td>
+                    <td>{{ collaborator.email }}</td>
+                    <td>{{ collaborator.get_role_display }}</td>
+                    <td>{{ collaborator.properties.count }}</td>
+                    <td>{{ collaborator.tasks.count }}</td>
+                    <td>
+                        <a href="{% url 'collaborator_update' collaborator.pk %}">Edit</a> |
+                        <a href="{% url 'collaborator_delete' collaborator.pk %}" style="color: #e74c3c;">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="card">
+        <p>No collaborators found. <a href="{% url 'collaborator_create' %}">Add your first collaborator</a></p>
+    </div>
+{% endif %}
+{% endblock %}
