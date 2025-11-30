@@ -1,5 +1,8 @@
 # Real Estate CRM
 
+![CI Pipeline](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg)
+[![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](htmlcov/index.html)
+
 A web-based Customer Relationship Management (CRM) system designed for real estate professionals to manage properties, clients, tasks, and collaborate with team members.
 
 ## Features
@@ -12,17 +15,26 @@ A web-based Customer Relationship Management (CRM) system designed for real esta
   - Search properties by address or description
   - Assign properties to collaborators
 
-### Planned Features
 - **Client Management**: Track buyers and sellers
+  - Manage client contact information
+  - Track client type (Buyer/Seller/Both)
+  - Link clients to properties of interest
+
 - **Task Management**: Create and manage tasks with due dates
+  - Set priority levels and status
+  - Assign tasks to collaborators
+  - Link tasks to properties or clients
+
 - **Collaborator Management**: Manage team members and assignments
+  - Track roles (Agent, Manager, Admin, Assistant)
+  - View assigned properties and tasks
 
 ## Technology Stack
 
 - **Backend**: Django 5.0+ (Python web framework)
 - **Database**: SQLite (lightweight, file-based database)
 - **Frontend**: HTML, CSS (no JavaScript dependencies)
-- **Development Model**: Agile with iterative development
+- **Testing**: pytest, pytest-django, pytest-cov
 
 ## Prerequisites
 
@@ -56,60 +68,59 @@ A web-based Customer Relationship Management (CRM) system designed for real esta
    pip install -r requirements.txt
    ```
 
-4. **Configure Django settings**
-   - The project is pre-configured to work out of the box
-   - Database settings use SQLite (no additional setup required)
-
-5. **Update the main project's urls.py**
-   In `realestate_crm/urls.py`, add the following:
-   ```python
-   from django.contrib import admin
-   from django.urls import path, include
-
-   urlpatterns = [
-       path('admin/', admin.site.urls),
-       path('', include('crm.urls')),
-   ]
-   ```
-
-6. **Update settings.py**
-   In `realestate_crm/settings.py`, ensure 'crm' is in INSTALLED_APPS:
-   ```python
-   INSTALLED_APPS = [
-       'django.contrib.admin',
-       'django.contrib.auth',
-       'django.contrib.contenttypes',
-       'django.contrib.sessions',
-       'django.contrib.messages',
-       'django.contrib.staticfiles',
-       'crm',  # Add this line
-   ]
-   ```
-
-   Also add this to enable proper number formatting:
-   ```python
-   USE_THOUSAND_SEPARATOR = True
-   ```
-
-7. **Create and apply database migrations**
+4. **Create and apply database migrations**
    ```bash
    python manage.py makemigrations
    python manage.py migrate
    ```
 
-8. **Create a superuser (optional, for admin access)**
+5. **Create a superuser (optional, for admin access)**
    ```bash
    python manage.py createsuperuser
    ```
 
-9. **Run the development server**
+6. **Run the development server**
    ```bash
    python manage.py runserver
    ```
 
-10. **Access the application**
-    - Open your browser and navigate to: http://127.0.0.1:8000/
-    - Admin interface (if superuser created): http://127.0.0.1:8000/admin/
+7. **Access the application**
+   - Open your browser and navigate to: http://127.0.0.1:8000/
+   - Admin interface (if superuser created): http://127.0.0.1:8000/admin/
+
+## Testing
+
+### Run All Tests
+```bash
+pytest
+```
+
+### Run Tests with Coverage
+```bash
+pytest --cov=crm --cov-report=html
+```
+
+### Run Specific Test Files
+```bash
+# Run model tests
+pytest crm/tests/test_models.py -v
+
+# Run form tests
+pytest crm/tests/test_forms.py -v
+
+# Run service tests
+pytest crm/tests/test_services.py -v
+
+# Run view tests
+pytest crm/tests/test_views.py -v
+```
+
+### View Coverage Report
+After running tests with coverage, open `htmlcov/index.html` in your browser.
+
+### Current Test Coverage
+- **145 tests** covering all major functionality
+- **97.89% code coverage** (above the 70% requirement)
 
 ## Project Structure
 
@@ -126,22 +137,55 @@ real-estate-crm/
 │   │   └── crm/
 │   │       ├── base.html
 │   │       ├── home.html
-│   │       ├── property_list.html
-│   │       ├── property_detail.html
-│   │       ├── property_form.html
-│   │       └── property_confirm_delete.html
+│   │       └── ... (other templates)
+│   ├── tests/               # Test files
+│   │   ├── test_constants.py
+│   │   ├── test_forms.py
+│   │   ├── test_models.py
+│   │   ├── test_services.py
+│   │   └── test_views.py
 │   ├── __init__.py
 │   ├── admin.py            # Admin interface configuration
 │   ├── apps.py
+│   ├── constants.py        # Centralized constants
 │   ├── forms.py            # Django forms
 │   ├── models.py           # Database models
+│   ├── services.py         # Business logic layer
 │   ├── urls.py             # App URL configuration
 │   └── views.py            # View functions
+├── conftest.py             # Pytest fixtures
+├── pytest.ini              # Pytest configuration
 ├── manage.py               # Django management script
 ├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore file
-└── README.md              # This file
+├── REPORT.md               # Code quality improvement report
+└── README.md               # This file
 ```
+
+## Code Quality
+
+### SOLID Principles Applied
+- **Single Responsibility**: Separate layers for models, forms, services, views
+- **Open/Closed**: Constants can be extended without modification
+- **Liskov Substitution**: TimeStampedModel base class for all models
+- **Interface Segregation**: Specific forms and services per domain
+- **Dependency Inversion**: Views depend on service abstractions
+
+### Architecture
+- **Constants Layer**: Centralized configuration in `constants.py`
+- **Service Layer**: Business logic in `services.py`
+- **Model Layer**: Data structure and basic methods in `models.py`
+- **Form Layer**: Validation and widgets in `forms.py`
+- **View Layer**: HTTP handling in `views.py`
+
+## Environment Variables
+
+The application supports the following environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DJANGO_SECRET_KEY` | Django secret key | Development key (change in production) |
+| `DJANGO_DEBUG` | Debug mode | `True` |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated allowed hosts | Empty |
 
 ## Usage Guide
 
@@ -154,87 +198,16 @@ real-estate-crm/
 5. **Filter properties**: Use the filter form to search by status or type
 6. **Search properties**: Use the search box to find properties by address
 
-### Database Schema
-
-The application uses four main database tables:
-
-- **Properties**: Stores property listings with address, price, type, and status
-- **Clients**: Manages buyer and seller information
-- **Tasks**: Tracks tasks and reminders with due dates
-- **Collaborators**: Manages team members who can be assigned to properties
-
-## Development Workflow
-
-### Git Commit Guidelines
-
-Follow these conventions for commit messages:
-- `feat(scope): description` - New features
-- `fix(scope): description` - Bug fixes
-- `docs(scope): description` - Documentation updates
-- `style(scope): description` - Code style changes
-- `refactor(scope): description` - Code refactoring
-- `test(scope): description` - Test additions/changes
-
-Example: `feat(property): add property search functionality`
-
-### Adding New Features
-
-1. Create a new branch: `git checkout -b feature/feature-name`
-2. Make your changes
-3. Test thoroughly
-4. Commit with descriptive messages
-5. Push to repository
-
-## Scaling and DevOps Considerations
-
-### Potential Scaling Improvements
-
-1. **Database**: Migrate from SQLite to PostgreSQL for production
-2. **Caching**: Implement Redis for session and data caching
-3. **Static Files**: Use CDN for serving static assets
-4. **Media Storage**: Integrate cloud storage (S3) for property images
-5. **Search**: Implement Elasticsearch for advanced property search
-6. **API**: Add Django REST Framework for mobile app support
-
-### DevOps Practices
-
-1. **Containerization**: Use Docker for consistent deployments
-2. **CI/CD Pipeline**: Implement with GitHub Actions or GitLab CI
-3. **Monitoring**: Add application monitoring (Sentry, New Relic)
-4. **Load Balancing**: Use Nginx as reverse proxy
-5. **Environment Management**: Separate settings for dev/staging/production
-6. **Automated Testing**: Implement unit and integration tests
-7. **Database Backups**: Automated daily backups
-8. **Security**: Implement SSL, security headers, and regular updates
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"No module named 'crm'" error**
-   - Ensure 'crm' is added to INSTALLED_APPS in settings.py
-
-2. **Template not found errors**
-   - Check that templates are in the correct directory: `crm/templates/crm/`
-
-3. **Database errors**
-   - Run `python manage.py makemigrations` and `python manage.py migrate`
-
-4. **Static files not loading**
-   - Ensure DEBUG=True in settings.py for development
-
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch: `git checkout -b feature/feature-name`
 3. Make your changes
-4. Write/update tests
-5. Submit a pull request
+4. Run tests: `pytest`
+5. Commit with descriptive messages
+6. Push to repository
+7. Submit a pull request
 
 ## License
 
-This project is created for educational purposes as part of a Software Development Life Cycle course.
-
-## Support
-
-For questions or issues, please create an issue in the project repository.
+This project is created for educational purposes as part of a Software Development DevOps course at IE University.

@@ -1,0 +1,130 @@
+# Continuous Integration Pipeline for Real Estate CRM
+# This workflow runs on every push and pull request to main branch
+# It runs tests, measures coverage, and fails if coverage is below 70%
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Run Tests & Check Coverage
+    runs-on: ubuntu-latest
+    
+    # Define Python versions to test against
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      # Step 3: Cache pip dependencies for faster builds
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      # Step 5: Run linting (optional but recommended)
+      - name: Run linting with flake8
+        run: |
+          pip install flake8
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings. Set line length to 120
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+        continue-on-error: true
+      
+      # Step 6: Run database migrations
+      - name: Run migrations
+        run: |
+          python manage.py migrate --no-input
+        env:
+          DJANGO_SETTINGS_MODULE: realestate_crm.settings
+      
+      # Step 7: Run tests with coverage
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=crm --cov-report=xml --cov-report=term-missing --cov-fail-under=70 -v
+        env:
+          DJANGO_SETTINGS_MODULE: realestate_crm.settings
+      
+      # Step 8: Upload coverage report to Codecov (optional)
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+      
+      # Step 9: Upload coverage report as artifact
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 30
+
+  # Build job - runs after tests pass
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test  # Only run if tests pass
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --no-input
+        env:
+          DJANGO_SETTINGS_MODULE: realestate_crm.settings
+      
+      - name: Verify application starts
+        run: |
+          python manage.py check
+          python manage.py migrate --no-input
+        env:
+          DJANGO_SETTINGS_MODULE: realestate_crm.settings
+      
+      - name: Build summary
+        run: |
+          echo "✅ Build completed successfully!"
+          echo "Python version: $(python --version)"
+          echo "Django version: $(python -c 'import django; print(django.VERSION)')"
