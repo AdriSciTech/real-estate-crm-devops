@@ -1,0 +1,67 @@
+# =============================================================================
+# Docker Compose for Real Estate CRM
+# Supports both development and production configurations
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Web Application Service
+  # =============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use 'production' for production builds
+    container_name: realestate_crm_web
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for development hot-reload
+      - .:/app
+      # Persist SQLite database
+      - sqlite_data:/app/data
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-dev-key-change-in-production}
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_SETTINGS_MODULE=realestate_crm.settings
+    command: >
+      sh -c "python manage.py migrate --no-input &&
+             python manage.py runserver 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # =============================================================================
+  # Test Runner Service
+  # =============================================================================
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: realestate_crm_test
+    volumes:
+      - .:/app
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=test-secret-key
+      - DJANGO_SETTINGS_MODULE=realestate_crm.settings
+    command: >
+      sh -c "python manage.py migrate --no-input &&
+             pytest --cov=crm --cov-report=term-missing --cov-fail-under=70 -v"
+    profiles:
+      - test
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  sqlite_data:
+    driver: local

@@ -1,8 +1,9 @@
-# Continuous Integration Pipeline for Real Estate CRM
-# This workflow runs on every push and pull request to main branch
-# It runs tests, measures coverage, and fails if coverage is below 70%
+# =============================================================================
+# CI/CD Pipeline for Real Estate CRM
+# Deploys to Azure Web App for Containers
+# =============================================================================
 
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -10,28 +11,33 @@ on:
   pull_request:
     branches: [ main, master ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  # ============================================================================
+  # Azure Configuration - Updated with your actual values
+  # ============================================================================
+  AZURE_WEBAPP_NAME: adasilva-realestate-crm          # Your unique web app name
+  RESOURCE_GROUP: BCSAI2025-DEVOPS-STUDENT-4B         # Your resource group
+  APP_SERVICE_PLAN: asp-weather-watcher               # Existing App Service Plan
+
 jobs:
+  # ===========================================================================
+  # Test Job - Runs tests and checks coverage (fails if < 70%)
+  # ===========================================================================
   test:
     name: Run Tests & Check Coverage
     runs-on: ubuntu-latest
     
-    # Define Python versions to test against
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11', '3.12']
-    
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
       
-      # Step 2: Set up Python
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
       
-      # Step 3: Cache pip dependencies for faster builds
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
@@ -40,61 +46,44 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       
-      # Step 4: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      # Step 5: Run linting (optional but recommended)
       - name: Run linting with flake8
         run: |
-          pip install flake8
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings. Set line length to 120
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
         continue-on-error: true
       
-      # Step 6: Run database migrations
       - name: Run migrations
-        run: |
-          python manage.py migrate --no-input
+        run: python manage.py migrate --no-input
         env:
           DJANGO_SETTINGS_MODULE: realestate_crm.settings
       
-      # Step 7: Run tests with coverage
       - name: Run tests with coverage
         run: |
           pytest --cov=crm --cov-report=xml --cov-report=term-missing --cov-fail-under=70 -v
         env:
           DJANGO_SETTINGS_MODULE: realestate_crm.settings
       
-      # Step 8: Upload coverage report to Codecov (optional)
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-        continue-on-error: true
-      
-      # Step 9: Upload coverage report as artifact
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ matrix.python-version }}
+          name: coverage-report
           path: |
             coverage.xml
             htmlcov/
           retention-days: 30
 
-  # Build job - runs after tests pass
+  # ===========================================================================
+  # Build Job - Builds and verifies the application
+  # ===========================================================================
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: test  # Only run if tests pass
+    needs: test
     
     steps:
       - name: Checkout code
@@ -111,12 +100,11 @@ jobs:
           pip install -r requirements.txt
       
       - name: Collect static files
-        run: |
-          python manage.py collectstatic --no-input
+        run: python manage.py collectstatic --no-input
         env:
           DJANGO_SETTINGS_MODULE: realestate_crm.settings
       
-      - name: Verify application starts
+      - name: Verify application
         run: |
           python manage.py check
           python manage.py migrate --no-input
@@ -124,7 +112,140 @@ jobs:
           DJANGO_SETTINGS_MODULE: realestate_crm.settings
       
       - name: Build summary
+        run: echo "✅ Application build successful!"
+
+  # ===========================================================================
+  # Docker Build & Push to GitHub Container Registry
+  # Only runs on main branch
+  # ===========================================================================
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Docker build summary
         run: |
-          echo "✅ Build completed successfully!"
-          echo "Python version: $(python --version)"
-          echo "Django version: $(python -c 'import django; print(django.VERSION)')"
+          echo "✅ Docker image built and pushed!"
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  # ===========================================================================
+  # Deploy to Azure Web App
+  # Only deploys on push to main branch (not on PRs)
+  # ===========================================================================
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: [test, build, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    environment:
+      name: production
+      url: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      # Create Web App if it doesn't exist
+      - name: Create Web App (if not exists)
+        run: |
+          # Check if web app exists
+          EXISTS=$(az webapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[?name=='${{ env.AZURE_WEBAPP_NAME }}'].name" -o tsv)
+          
+          if [ -z "$EXISTS" ]; then
+            echo "Creating Web App: ${{ env.AZURE_WEBAPP_NAME }}"
+            az webapp create \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --plan ${{ env.APP_SERVICE_PLAN }} \
+              --runtime "PYTHON:3.11"
+          else
+            echo "Web App already exists: ${{ env.AZURE_WEBAPP_NAME }}"
+          fi
+      
+      # Configure container settings
+      - name: Configure Web App Container
+        run: |
+          az webapp config container set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --container-image-name ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            --container-registry-url https://${{ env.REGISTRY }}
+      
+      # Set environment variables
+      - name: Configure App Settings
+        run: |
+          az webapp config appsettings set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              WEBSITES_PORT=8000 \
+              DJANGO_DEBUG=False \
+              DJANGO_ALLOWED_HOSTS="${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" \
+              DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
+      
+      # Deploy the container image
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+      
+      # Restart the app to pick up changes
+      - name: Restart Web App
+        run: |
+          az webapp restart \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }}
+      
+      - name: Azure logout
+        run: az logout
+        if: always()
+      
+      - name: Deployment Summary
+        run: |
+          echo "=============================================="
+          echo "✅ DEPLOYMENT SUCCESSFUL!"
+          echo "=============================================="
+          echo "🌐 URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          echo "🐳 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "📅 Deployed: $(date)"
+          echo "🔖 Commit: ${{ github.sha }}"
+          echo "=============================================="
